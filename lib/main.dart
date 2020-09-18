@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:persistent_moving_tab/ui/background_image.dart';
 import 'package:persistent_moving_tab/ui/follow_button.dart';
 import 'package:persistent_moving_tab/ui/follower_info.dart';
 import 'package:persistent_moving_tab/ui/profile_description.dart';
+import 'package:persistent_moving_tab/ui/profile_tabs.dart';
 import 'package:persistent_moving_tab/ui/tab_button.dart';
 import 'package:persistent_moving_tab/ui/user_info.dart';
+
+import 'blocs/selection_bloc.dart';
 
 void main() {
   runApp(MyApp());
@@ -20,40 +25,61 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: HomePage(title: 'Flutter Demo Home Page'),
+      home: ProfilePage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  HomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
-
+class ProfilePage extends StatefulWidget {
   @override
-  _HomePageState createState() => _HomePageState();
+  _ProfilePageState createState() => _ProfilePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  ScrollController _scrollController;
-  GlobalKey appBarKey;
-  GlobalKey profileFeedKey;
-  GlobalKey tabKey;
-  bool showAppBar = false;
-  bool isExpanded = true;
+class _ProfilePageState extends State<ProfilePage>
+    with TickerProviderStateMixin {
+  bool isExpanded;
+  GlobalObjectKey _contentKey;
+  List<Widget> _widgetOptions;
 
-  bool lastStatus;
-
-  int _selectedIndex;
-
+  SelectionBloc bloc;
   @override
   void initState() {
-    _selectedIndex = 0;
-    _scrollController = ScrollController();
-    appBarKey = GlobalKey(debugLabel: 'appBar');
-    profileFeedKey = GlobalKey(debugLabel: 'profileFeed');
-    tabKey = GlobalKey(debugLabel: 'tabKey');
-    _scrollController.addListener(_scrollListener);
+    bloc = SelectionBloc();
+    _contentKey = GlobalObjectKey('Content123');
+    isExpanded = true;
+    final bucket = PageStorageBucket();
+    _widgetOptions = <Widget>[
+      PageStorage(
+        bucket: bucket,
+        child: ListView.builder(
+          key: PageStorageKey<String>('0'),
+          itemCount: 100,
+          itemBuilder: (context, index) => ListTile(
+            title: Text('List1 $index'),
+          ),
+        ),
+      ),
+      PageStorage(
+        bucket: bucket,
+        child: ListView.builder(
+          key: PageStorageKey<String>('1'),
+          itemCount: 100,
+          itemBuilder: (context, index) => ListTile(
+            title: Text('List2 $index'),
+          ),
+        ),
+      ),
+      PageStorage(
+        bucket: bucket,
+        child: ListView.builder(
+          key: PageStorageKey<String>('2'),
+          itemCount: 100,
+          itemBuilder: (context, index) => ListTile(
+            title: Text('List3 $index'),
+          ),
+        ),
+      ),
+    ];
     super.initState();
   }
 
@@ -61,162 +87,91 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.red,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: <Widget>[
-          SliverAppBar(
-            backgroundColor: Colors.white,
-            shadowColor: Colors.white,
-            pinned: true,
-            elevation: 0,
-            centerTitle: true,
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back_ios,
-                color: isExpanded ? Colors.white : Colors.grey,
-              ),
-              onPressed: () {},
-            ),
-            title: Text(
-              'Holly McCauley',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: isExpanded ? Colors.transparent : Colors.grey),
-            ),
-            actions: [
-              IconButton(
-                icon: Icon(
-                  Icons.more_horiz,
-                  color: isExpanded ? Colors.white : Colors.grey,
-                ),
-                onPressed: () {},
-              ),
-            ],
-            expandedHeight: _expandedHeight(context),
-            flexibleSpace: Stack(
-              children: [
-                Positioned(
-                    child: FlexibleSpaceBar(
-                      background: BackgroundImage(),
-                      collapseMode: CollapseMode.none,
-                    ),
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0),
-                Positioned(
-                  child: Container(
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                    ),
-                  ),
-                  bottom: -1,
-                  left: 0,
-                  right: 0,
-                ),
-              ],
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildListDelegate(<Widget>[
-              Column(
-                key: tabKey,
-                children: [
-                  UserInfo(),
-                  ProfileDescription(),
-                  FollowerInfo(),
-                ],
-              ),
-            ]),
-          ),
-          SliverAppBar(
-            toolbarHeight: 40,
-            backgroundColor: Colors.white,
-            bottom: BottomDivider(),
-            elevation: 0,
-            pinned: true,
-            flexibleSpace: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TabButton(
-                    title: 'Posts',
-                    isSelected: _selectedIndex == 0,
-                    onTap: () => setState(() {
-                      _selectedIndex = 0;
-                    }),
-                  ),
-                  TabButton(
-                    title: 'Collections',
-                    isSelected: _selectedIndex == 1,
-                    onTap: () => setState(() {
-                      _selectedIndex = 1;
-                    }),
-                  ),
-                  TabButton(
-                    title: 'Memories',
-                    isSelected: _selectedIndex == 2,
-                    onTap: () => setState(() {
-                      _selectedIndex = 2;
-                    }),
-                  ),
-                  Spacer(),
-                  isExpanded ? Container() : FollowButton(),
-                ],
-              ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildListDelegate(<Widget>[
-              Container(
-                height: MediaQuery.of(context).size.height,
-                color: Colors.white,
-                child: IndexedStack(
-                  index: _selectedIndex,
-                  children: [
-                    Content(),
-                    ListView.builder(
-                        itemCount: 100,
-                        itemBuilder: (context, index) => ListTile(
-                              title: Text('second $index'),
-                            )),
-                    ListView.builder(
-                        itemCount: 100,
-                        itemBuilder: (context, index) => ListTile(
-                              title: Text('third $index'),
-                            )),
-                  ],
-                ),
-              ),
-            ]),
-          )
-        ],
+      body: NestedScrollView(
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          return <Widget>[
+            _buildFirstAppBar(context),
+            ProfileInfo(),
+            _buildProfileTabs()
+            // new SliverPersistentHeader(
+            //   pinned: true,
+            //   delegate: new TestTabBarDelegate(controller: _tabController),
+            // ),
+          ];
+        },
+        body: StreamBuilder<int>(
+          initialData: 0,
+          stream: bloc.indexStream,
+          builder: (context, index) => _widgetOptions[index.data],
+        ),
       ),
     );
   }
 
-  void _scrollListener() {
-    RenderBox box = tabKey.currentContext.findRenderObject();
-    Offset offset = box.localToGlobal(Offset.zero);
-    if ((offset.dy + kToolbarHeight) <= 0) {
-      setState(() {
-        isExpanded = false;
-        lastStatus = isExpanded;
-      });
-    } else if (((offset.dy + kToolbarHeight) > 0) &&
-        (lastStatus == isExpanded)) {
-      setState(() {
-        isExpanded = true;
-        lastStatus = isExpanded;
-      });
-    }
+  SliverPersistentHeader _buildProfileTabs() {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: ProfileTabs(controller: bloc, isExpanded: isExpanded),
+    );
+  }
+
+  SliverAppBar _buildFirstAppBar(BuildContext context) {
+    return SliverAppBar(
+      backgroundColor: Colors.white,
+      shadowColor: Colors.white,
+      pinned: true,
+      elevation: 0,
+      centerTitle: true,
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back_ios,
+          color: isExpanded ? Colors.white : Colors.grey,
+        ),
+        onPressed: () {},
+      ),
+      title: Text(
+        'Holly McCauley',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: isExpanded ? Colors.transparent : Colors.grey),
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(
+            Icons.more_horiz,
+            color: isExpanded ? Colors.white : Colors.grey,
+          ),
+          onPressed: () {},
+        ),
+      ],
+      expandedHeight: _expandedHeight(context),
+      flexibleSpace: Stack(
+        children: [
+          Positioned(
+              child: FlexibleSpaceBar(
+                background: BackgroundImage(),
+                collapseMode: CollapseMode.none,
+              ),
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0),
+          Positioned(
+            child: Container(
+              height: 30,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+            ),
+            bottom: -1,
+            left: 0,
+            right: 0,
+          ),
+        ],
+      ),
+    );
   }
 
   double _expandedHeight(BuildContext context) =>
@@ -226,98 +181,120 @@ class _HomePageState extends State<HomePage> {
 class Content extends StatefulWidget {
   const Content({
     Key key,
+    this.index,
   }) : super(key: key);
+
+  final int index;
 
   @override
   _ContentState createState() => _ContentState();
 }
 
 class _ContentState extends State<Content> {
-  ScrollController _scrollController;
-
-  bool isNonScrollable = false;
+  GlobalObjectKey _contentKey;
 
   @override
   void initState() {
-    _scrollController = ScrollController();
+    _contentKey = GlobalObjectKey('Content');
     super.initState();
-    _scrollController.addListener(() {
-      print(_scrollController.position.pixels);
-    });
   }
 
   @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return IndexedStack(
+      key: _contentKey,
+      index: widget.index,
+      children: [
+        PostsContent(),
+        MemoriesContent(),
+        ListView.builder(
+            itemCount: 100,
+            itemBuilder: (context, index) => ListTile(
+                  key: PageStorageKey<String>('third $index'),
+                  title: Text('third $index'),
+                )),
+      ],
+    );
+  }
+}
+
+class MemoriesContent extends StatefulWidget {
+  const MemoriesContent({
+    Key key,
+  }) : super(key: key);
+
+  @override
+  _MemoriesContentState createState() => _MemoriesContentState();
+}
+
+class _MemoriesContentState extends State<MemoriesContent> {
+  PageStorageKey pageContentKey;
+  @override
+  void initState() {
+    // TODO: implement initState
+    pageContentKey = PageStorageKey('Memories');
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      controller: _scrollController,
+      key: pageContentKey,
       itemCount: 100,
       itemBuilder: (context, index) => ListTile(
-        title: Text('first $index'),
+        key: PageStorageKey<String>('sec $index'),
+        title: Text('sec $index'),
       ),
     );
   }
 }
 
-class Tabs extends StatefulWidget implements PreferredSizeWidget {
-  final isExpanded;
-
-  const Tabs({
-    this.isExpanded,
-  });
-  @override
-  _TabsState createState() => _TabsState();
+class PostsContent extends StatefulWidget {
+  const PostsContent({
+    Key key,
+  }) : super(key: key);
 
   @override
-  Size get preferredSize => Size.fromHeight(56.0);
+  _PostsContentState createState() => _PostsContentState();
 }
 
-class _TabsState extends State<Tabs> {
+class _PostsContentState extends State<PostsContent> {
+  PageStorageKey pageContentKey;
+  @override
+  void initState() {
+    pageContentKey = PageStorageKey('Posts');
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-      child: AnimatedOpacity(
-        opacity: isOpaque(),
-        duration: Duration(milliseconds: 150),
-        child: Row(
+    return ListView.builder(
+        key: pageContentKey,
+        itemCount: 100,
+        itemBuilder: (context, index) => ListTile(
+              key: PageStorageKey<String>('first $index'),
+              title: Text('first $index'),
+            ));
+  }
+}
+
+class ProfileInfo extends StatelessWidget {
+  const ProfileInfo({
+    Key key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverList(
+      delegate: SliverChildListDelegate(<Widget>[
+        Column(
           children: [
-            TabButton(
-              title: 'Posts',
-              isSelected: true,
-            ),
-            TabButton(
-              title: 'Collections',
-              isSelected: false,
-            ),
-            TabButton(
-              title: 'Memories',
-              isSelected: false,
-            ),
-            Spacer(),
-            FollowButton(),
+            UserInfo(),
+            ProfileDescription(),
+            FollowerInfo(),
           ],
         ),
-      ),
+      ]),
     );
   }
-
-  double isOpaque() => widget.isExpanded ? 0 : 1;
-}
-
-class BottomDivider extends StatelessWidget implements PreferredSizeWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Divider(
-      thickness: 1.5,
-    );
-  }
-
-  @override
-  Size get preferredSize => Size.fromHeight(0.0);
 }
